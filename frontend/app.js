@@ -186,8 +186,31 @@ function renderVerify(report) {
                 <span style="color:var(--danger);">${s.errors || 0} errors</span>
                 <span style="color:var(--warning);">${s.warnings || 0} warnings</span>
                 <span style="color:var(--text-dim);">${s.incomplete_endpoints || 0} incomplete</span>
+                ${report.rubric && report.rubric.present ? `<span style="font-weight:700; color:${report.rubric.percent>=100?'var(--success)':(report.rubric.percent>=50?'var(--warning)':'var(--danger)')};">answer key ${report.rubric.percent}%</span>` : ''}
             </div>
         </div>`;
+
+    // Answer key embedded in the .pka itself — exact expected values, highest precision.
+    const rub = report.rubric;
+    if (rub && rub.present) {
+        const rc = rub.verdict === 'FAIL' ? 'var(--danger)' : (rub.verdict === 'WARN' ? 'var(--warning)' : 'var(--success)');
+        html += `<div style="font-weight:600; margin:6px 0;">Answer key (embedded in the lab) — <span style="color:${rc};">${rub.earned_points}/${rub.possible_points} pts (${rub.percent}%)</span></div>`;
+        html += `<div style="font-size:0.72rem; color:var(--text-dim); margin-bottom:6px;">Auto-checked ${rub.auto_checked_items} of ${rub.total_graded_items} graded items (hostname &amp; interface IP/mask); the rest aren't auto-verified yet.</div>`;
+        if (!(rub.failures || []).length) {
+            html += `<div style="padding:6px 8px; margin-bottom:4px; background:rgba(255,255,255,0.03); border-left:3px solid var(--success); border-radius:4px; font-size:0.8rem; color:var(--success);">✓ All auto-checked answer-key items match.</div>`;
+        } else {
+            rub.failures.forEach(r => {
+                const where = escapeHtml(r.device + (r.interface ? (' ' + r.interface) : ''));
+                html += `
+                    <div style="padding:6px 8px; margin-bottom:4px; background:rgba(255,255,255,0.03); border-left:3px solid var(--danger); border-radius:4px; font-size:0.78rem;">
+                        <span style="color:var(--danger); font-weight:700; margin-right:6px;">✗</span>
+                        <span style="font-weight:500;">${where} — ${escapeHtml(r.attribute)}</span>
+                        <div style="color:var(--text-dim); margin-top:2px; font-family:var(--font-mono);">expected ${escapeHtml(String(r.expected))} · got ${escapeHtml(String(r.actual))}</div>
+                        ${r.feedback ? `<div style="color:var(--text-dim); margin-top:2px; font-style:italic;">→ ${escapeHtml(r.feedback)}</div>` : ''}
+                    </div>`;
+            });
+        }
+    }
 
     // Professor's tests (or auto connectivity tests) — the lab's success criteria.
     const obj = report.objective_tests;

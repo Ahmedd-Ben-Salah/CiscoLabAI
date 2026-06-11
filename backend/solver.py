@@ -32,9 +32,14 @@ def _score(report, preexisting=None):
     warn = sum(1 for f in findings if f['severity'] == 'warning' and _finding_key(f) not in preexisting)
     # A failed professor test is the heaviest signal — it's the lab's actual goal.
     tests_failed = report.get('objective_tests', {}).get('failed', 0)
+    # Mismatches against the .pka's own embedded answer key (when present) are a
+    # precise, high-confidence signal of remaining wrong/missing required values.
+    rubric = report.get('rubric', {})
+    rubric_failed = len(rubric['failures']) if rubric.get('present') else 0
     return (tests_failed * 5
             + s.get('unreachable', 0) * 3
             + err * 4
+            + rubric_failed * 2
             + s.get('incomplete_endpoints', 0) * 2
             + warn)
 
@@ -77,6 +82,18 @@ def _failures(report, preexisting=None):
         if f['severity'] in ('error', 'warning') and _finding_key(f) not in preexisting:
             hint = f" (fix: {f['fix_hint']})" if f.get('fix_hint') else ''
             lines.append(f"[{f['severity']}] {f['message']}{hint}")
+
+    # The lab's own embedded answer key: exact expected values for items that are
+    # still wrong/missing, plus the professor's own feedback hint. This is the
+    # highest-precision guidance available and is always additive (guardrails
+    # still block overwriting any pre-existing anchor).
+    rubric = report.get('rubric', {})
+    if rubric.get('present'):
+        for r in rubric['failures'][:40]:
+            where = r['device'] + (f" {r['interface']}" if r['interface'] else '')
+            hint = f" — {r['feedback']}" if r['feedback'] else ''
+            lines.append(f"ANSWER KEY: {where} {r['attribute']} must be "
+                         f"{r['expected']!r} (currently {r['actual']!r}){hint}")
 
     return lines
 
@@ -146,7 +163,7 @@ def solve_with_refinement(provider, api_key, model, xml_string, context, audit_r
     # professor's pre-existing config (e.g. a duplicate IP they left in) — the
     # additive loop must not try to "fix" them by overwriting anchors, so we
     # exclude them from the feedback and surface them separately for the human.
-    baseline = verify(context)
+    baseline = verify(context, xml_current)
     preexisting = {_finding_key(f) for f in baseline['invariants']['findings']
                    if f['severity'] in ('error', 'warning')}
 
@@ -176,7 +193,7 @@ def solve_with_refinement(provider, api_key, model, xml_string, context, audit_r
         # must never be overwritten — the loop only ever ADDS config.
         xml_new, config_results = apply_solution_to_xml(
             xml_current, solution, ctx_current['devices'], audit_report)
-        report = verify(get_full_context(xml_new))
+        report = verify(get_full_context(xml_new), xml_new)
         # Tag which invariant findings were already in the unsolved lab.
         for f in report['invariants']['findings']:
             f['preexisting'] = _finding_key(f) in preexisting

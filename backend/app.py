@@ -198,11 +198,15 @@ def api_verify():
     try:
         from oracle import verify
         # Prefer the modified network if a solution was applied, else the original.
+        # Pass the matching XML so the oracle can also grade against the .pka's
+        # own embedded answer key (when present and not obfuscated).
         if session.get('modified_xml'):
-            context = get_full_context(session['modified_xml'])
+            xml = session['modified_xml']
+            context = get_full_context(xml)
         else:
+            xml = session.get('xml_string')
             context = session['context']
-        report = verify(context)
+        report = verify(context, xml)
         return jsonify({'success': True, 'report': report})
     except Exception as e:
         traceback.print_exc()
