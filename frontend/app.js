@@ -607,10 +607,73 @@ function renderAudit(audit) {
 //  TOPOLOGY VISUALIZATION (vis.js)
 // ═══════════════════════════════════════════════════════════════
 
+// Per-category accent colours for the device icons + legend.
+const TOPO_PALETTE = {
+    router:   '#25e8c4',
+    switch:   '#46a8ff',
+    pc:       '#7ef2d6',
+    server:   '#f5b945',
+    phone:    '#b6a8ff',
+    wireless: '#fc78b0',
+    cloud:    '#9fb2c8',
+    generic:  '#aab8c6',
+};
+const TOPO_LABEL = {
+    router: 'Router', switch: 'Switch', pc: 'PC', server: 'Server',
+    phone: 'IP Phone', wireless: 'Access Point', cloud: 'Cloud', generic: 'Device',
+};
+
+// Line-art glyph for each device type, drawn in a 72×72 tile.
+function deviceGlyph(category, c) {
+    const s = `fill="none" stroke="${c}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"`;
+    const dot = (x, y) => `<circle cx="${x}" cy="${y}" r="1.4" fill="${c}"/>`;
+    switch (category) {
+        case 'router':
+            return `<g ${s}><circle cx="36" cy="36" r="11"/>
+                <path d="M36 25v-6 M33 22l3-3 3 3"/><path d="M36 47v6 M33 50l3 3 3-3"/>
+                <path d="M25 36h-6 M22 33l-3 3 3 3"/><path d="M47 36h6 M50 33l3 3-3 3"/></g>`;
+        case 'switch':
+            return `<g ${s}><rect x="19" y="31" width="34" height="13" rx="3"/>
+                <path d="M28 27v-8 M25 22l3-3 3 3"/><path d="M36 19v8 M33 23l3 3 3-3"/>
+                <path d="M44 27v-8 M41 22l3-3 3 3"/></g>${dot(28,38)}${dot(36,38)}${dot(44,38)}`;
+        case 'pc':
+            return `<g ${s}><rect x="20" y="22" width="32" height="21" rx="3"/>
+                <line x1="30" y1="50" x2="42" y2="50"/><line x1="36" y1="43" x2="36" y2="50"/></g>`;
+        case 'server':
+            return `<g ${s}><rect x="25" y="19" width="22" height="34" rx="3"/>
+                <line x1="30" y1="27" x2="42" y2="27"/><line x1="30" y1="35" x2="42" y2="35"/></g>${dot(31,45)}`;
+        case 'phone':
+            return `<g ${s}><path d="M25 27q0-5 5-5l3 0q3 0 3 3l0 3q0 2-2 3l-2 1q3 5 8 8l1-2q1-2 3-2l3 0q3 0 3 3l0 3q0 5-5 5q-20-1-24-24z"/></g>`;
+        case 'wireless':
+            return `<g ${s}><rect x="23" y="40" width="26" height="8" rx="4"/>
+                <path d="M28 34a11 11 0 0 1 16 0"/><path d="M31 30a16 16 0 0 1 10 0"/></g>${dot(36,44)}`;
+        case 'cloud':
+            return `<g ${s}><path d="M28 46a8 8 0 0 1 1-16 10 10 0 0 1 19 3 7 7 0 0 1-2 13z"/></g>`;
+        default:
+            return `<g ${s}><rect x="26" y="26" width="20" height="20" rx="3"/>
+                <line x1="31" y1="22" x2="31" y2="26"/><line x1="41" y1="22" x2="41" y2="26"/>
+                <line x1="31" y1="46" x2="31" y2="50"/><line x1="41" y1="46" x2="41" y2="50"/>
+                <line x1="22" y1="31" x2="26" y2="31"/><line x1="22" y1="41" x2="26" y2="41"/>
+                <line x1="46" y1="31" x2="50" y2="31"/><line x1="46" y1="41" x2="50" y2="41"/></g>`;
+    }
+}
+
+function deviceIconURI(category) {
+    const c = TOPO_PALETTE[category] || TOPO_PALETTE.generic;
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="72" height="72" viewBox="0 0 72 72">
+        <defs><linearGradient id="t" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#15203140"/><stop offset="0" stop-color="#16223399"/>
+            <stop offset="1" stop-color="#0a121fdd"/></linearGradient></defs>
+        <rect x="6" y="6" width="60" height="60" rx="17" fill="url(#t)" stroke="${c}" stroke-opacity="0.6" stroke-width="1.5"/>
+        <rect x="6" y="6" width="60" height="60" rx="17" fill="${c}" fill-opacity="0.07"/>
+        ${deviceGlyph(category, c)}</svg>`;
+    return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+}
+
 function renderTopology(devices, connections) {
     const container = document.getElementById('topology-graph');
     const placeholder = document.getElementById('topology-placeholder');
-    
+
     if (!devices || devices.length === 0) {
         placeholder.style.display = 'flex';
         container.style.display = 'none';
@@ -620,27 +683,20 @@ function renderTopology(devices, connections) {
     placeholder.style.display = 'none';
     container.style.display = 'block';
 
-    // Device category colors and shapes
-    const categoryStyles = {
-        router: { color: { background: '#00bceb', border: '#0099c4', highlight: { background: '#33d1f5', border: '#00bceb' } }, shape: 'diamond', size: 25 },
-        switch: { color: { background: '#6c5ce7', border: '#5a4bd5', highlight: { background: '#8b7fef', border: '#6c5ce7' } }, shape: 'square', size: 22 },
-        pc: { color: { background: '#00cec9', border: '#00b5b0', highlight: { background: '#33e0dc', border: '#00cec9' } }, shape: 'dot', size: 18 },
-        server: { color: { background: '#fdcb6e', border: '#e0b345', highlight: { background: '#fdd98a', border: '#fdcb6e' } }, shape: 'star', size: 22 },
-        phone: { color: { background: '#a29bfe', border: '#8b83e6', highlight: { background: '#b8b3fe', border: '#a29bfe' } }, shape: 'triangle', size: 18 },
-        wireless: { color: { background: '#fd79a8', border: '#e0608b', highlight: { background: '#fd97bc', border: '#fd79a8' } }, shape: 'hexagon', size: 20 },
-        cloud: { color: { background: '#636e72', border: '#535c5f', highlight: { background: '#7e898d', border: '#636e72' } }, shape: 'ellipse', size: 30 },
-        generic: { color: { background: '#b2bec3', border: '#96a2a6', highlight: { background: '#c5ced2', border: '#b2bec3' } }, shape: 'dot', size: 18 },
-    };
-
-    // Build nodes
+    // Build nodes — each device gets a custom icon image.
     const nodes = devices.map((dev, i) => {
-        const style = categoryStyles[dev.category] || categoryStyles.generic;
+        const cat = TOPO_PALETTE[dev.category] ? dev.category : 'generic';
         return {
             id: i,
             label: dev.name,
-            title: `${dev.name}\n${dev.type} (${dev.model})\n${dev.interfaces?.length || 0} interfaces\nConfig: ${dev.has_config ? '✓' : '✗'}`,
-            ...style,
-            font: { color: '#e8e8f0', size: 12, face: 'Inter', strokeWidth: 2, strokeColor: '#060614' },
+            image: deviceIconURI(cat),
+            shape: 'image',
+            size: 26,
+            title: `${dev.name}\n${dev.type} (${dev.model})\n${dev.interfaces?.length || 0} interfaces`,
+            font: {
+                color: '#cdd9ea', size: 13, face: 'IBM Plex Sans', vadjust: 5,
+                strokeWidth: 4, strokeColor: 'rgba(6,9,16,0.92)',
+            },
             x: dev.x ? dev.x * 2 : undefined,
             y: dev.y ? dev.y * 2 : undefined,
         };
@@ -655,46 +711,56 @@ function renderTopology(devices, connections) {
         from: deviceNameToId[conn.device1],
         to: deviceNameToId[conn.device2],
         title: `${conn.port1 || '?'} ↔ ${conn.port2 || '?'}\n${conn.cable_type || 'Cable'}`,
-        color: { color: 'rgba(255,255,255,0.12)', highlight: '#00bceb', hover: 'rgba(255,255,255,0.25)' },
-        width: 2,
-        smooth: { type: 'continuous' },
     })).filter(e => e.from !== undefined && e.to !== undefined);
 
-    // vis.js options
     const options = {
         physics: {
             enabled: !devices.some(d => d.x && d.y),
             solver: 'forceAtlas2Based',
             forceAtlas2Based: {
-                gravitationalConstant: -60,
+                gravitationalConstant: -65,
                 centralGravity: 0.008,
-                springLength: 150,
-                springConstant: 0.04,
-                damping: 0.3,
+                springLength: 160,
+                springConstant: 0.045,
+                damping: 0.35,
             },
-            stabilization: { iterations: 200, fit: true },
+            stabilization: { iterations: 220, fit: true },
         },
-        interaction: {
-            hover: true,
-            tooltipDelay: 100,
-            zoomView: true,
-            dragView: true,
-        },
+        interaction: { hover: true, tooltipDelay: 120, zoomView: true, dragView: true },
         nodes: {
-            borderWidth: 2,
-            shadow: { enabled: true, color: 'rgba(0,0,0,0.3)', size: 8 },
+            shadow: { enabled: true, color: 'rgba(0,0,0,0.55)', size: 14, x: 0, y: 5 },
         },
         edges: {
+            color: { color: 'rgba(120,170,210,0.20)', highlight: '#25e8c4', hover: 'rgba(37,232,196,0.55)' },
+            width: 1.5,
+            hoverWidth: 1.2,
+            selectionWidth: 1.4,
+            smooth: { enabled: true, type: 'dynamic', roundness: 0.6 },
             shadow: false,
         },
     };
 
-    // Create network
-    if (state.networkInstance) {
-        state.networkInstance.destroy();
-    }
-    
+    if (state.networkInstance) state.networkInstance.destroy();
     state.networkInstance = new vis.Network(container, { nodes, edges }, options);
+
+    renderTopoLegend(devices);
+}
+
+// Floating legend chip set, built from the device categories actually present.
+function renderTopoLegend(devices) {
+    const body = document.querySelector('.topology-body');
+    if (!body) return;
+    body.querySelector('.topo-legend')?.remove();
+
+    const cats = [...new Set(devices.map(d => (TOPO_PALETTE[d.category] ? d.category : 'generic')))];
+    if (!cats.length) return;
+
+    const legend = document.createElement('div');
+    legend.className = 'topo-legend';
+    legend.innerHTML = cats.map(cat =>
+        `<span class="lg"><i style="background:${TOPO_PALETTE[cat]}"></i>${TOPO_LABEL[cat] || cat}</span>`
+    ).join('');
+    body.appendChild(legend);
 }
 
 // ═══════════════════════════════════════════════════════════════

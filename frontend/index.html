@@ -9,7 +9,7 @@
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     
     <!-- vis.js for network topology visualization -->
     <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
@@ -38,12 +38,12 @@
                         <path d="M20 12 L26 18 L20 24 L14 18Z" fill="url(#logoGrad2)" opacity="0.6"/>
                         <defs>
                             <linearGradient id="logoGrad" x1="0" y1="0" x2="40" y2="40">
-                                <stop offset="0%" stop-color="#00bceb"/>
-                                <stop offset="100%" stop-color="#6c5ce7"/>
+                                <stop offset="0%" stop-color="#25e8c4"/>
+                                <stop offset="100%" stop-color="#46a8ff"/>
                             </linearGradient>
                             <linearGradient id="logoGrad2" x1="0" y1="40" x2="40" y2="0">
-                                <stop offset="0%" stop-color="#00bceb"/>
-                                <stop offset="100%" stop-color="#a29bfe"/>
+                                <stop offset="0%" stop-color="#25e8c4"/>
+                                <stop offset="100%" stop-color="#9be8df"/>
                             </linearGradient>
                         </defs>
                     </svg>
@@ -87,8 +87,8 @@
                             <line x1="12" y1="3" x2="12" y2="15"/>
                             <defs>
                                 <linearGradient id="uploadGrad" x1="0" y1="0" x2="24" y2="24">
-                                    <stop offset="0%" stop-color="#00bceb"/>
-                                    <stop offset="100%" stop-color="#6c5ce7"/>
+                                    <stop offset="0%" stop-color="#25e8c4"/>
+                                    <stop offset="100%" stop-color="#46a8ff"/>
                                 </linearGradient>
                             </defs>
                         </svg>
@@ -120,7 +120,7 @@
         <!-- File Info Bar -->
         <div id="file-info-bar">
             <div class="file-info-left">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00bceb" stroke-width="2">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2">
                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
                     <polyline points="14 2 14 8 20 8"/>
                 </svg>
@@ -376,6 +376,6 @@
     <div id="toast-container"></div>
 
     <!-- App JS -->
-    <script src="app.js?v=6"></script>
+    <script src="app.js?v=7"></script>
 </body>
 </html>
