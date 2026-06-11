@@ -67,8 +67,7 @@ pip install twofish
 On Python 3.12 the published `twofish` package breaks because it imports the removed `imp`
 module. Run `python patch_twofish.py` once to fix the installed copy (it rewrites the loader
 to find the `.pyd` with `glob` instead). The path in that script is hardcoded to my machine,
-so adjust it if your Python lives elsewhere. There's a pure-Python fallback in
-`twofish_pure.py` if you'd rather not deal with the C extension at all.
+so adjust it if your Python lives elsewhere.
 
 ## Layout
 
