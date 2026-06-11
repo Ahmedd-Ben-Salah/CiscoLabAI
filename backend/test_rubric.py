@@ -41,6 +41,19 @@ def main():
     print(f'(of {report["total_graded_items"]} graded items / '
           f'{report["total_graded_points"]} total pts in the rubric)\n')
 
+    # Per-section breakdown of what got auto-checked (and pass rate).
+    from collections import defaultdict
+    sect = defaultdict(lambda: [0, 0])  # section -> [checked, passed]
+    for r in report['items']:
+        if r['checkable']:
+            sect[r['section']][0] += 1
+            sect[r['section']][1] += 1 if r['ok'] else 0
+    print('Auto-checked by section:')
+    for name in sorted(sect):
+        chk, ok = sect[name]
+        print(f'  {name:<18} {ok}/{chk} passed')
+    print()
+
     fails = report['failures']
     print(f'Failures: {len(fails)}')
     for r in fails[:30]:

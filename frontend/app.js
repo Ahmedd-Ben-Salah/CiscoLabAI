@@ -195,7 +195,7 @@ function renderVerify(report) {
     if (rub && rub.present) {
         const rc = rub.verdict === 'FAIL' ? 'var(--danger)' : (rub.verdict === 'WARN' ? 'var(--warning)' : 'var(--success)');
         html += `<div style="font-weight:600; margin:6px 0;">Answer key (embedded in the lab) — <span style="color:${rc};">${rub.earned_points}/${rub.possible_points} pts (${rub.percent}%)</span></div>`;
-        html += `<div style="font-size:0.72rem; color:var(--text-dim); margin-bottom:6px;">Auto-checked ${rub.auto_checked_items} of ${rub.total_graded_items} graded items (hostname &amp; interface IP/mask); the rest aren't auto-verified yet.</div>`;
+        html += `<div style="font-size:0.72rem; color:var(--text-dim); margin-bottom:6px;">Auto-checked ${rub.auto_checked_items} of ${rub.total_graded_items} graded items (hostname, interface IP/mask, VLANs, OSPF, static routes, default-gateway, DHCP); the rest aren't auto-verified yet.</div>`;
         if (!(rub.failures || []).length) {
             html += `<div style="padding:6px 8px; margin-bottom:4px; background:rgba(255,255,255,0.03); border-left:3px solid var(--success); border-radius:4px; font-size:0.8rem; color:var(--success);">✓ All auto-checked answer-key items match.</div>`;
         } else {
