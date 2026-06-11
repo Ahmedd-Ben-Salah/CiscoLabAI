@@ -21,8 +21,9 @@ feedback. It is an accelerator layered on top of the answer-key-independent orac
 
 Only attributes we can resolve unambiguously from the running-config / VLAN table
 are auto-checked: hostname, per-interface IPv4/IPv6 + mask, VLAN id->name, OSPF
-router-id + network statements, static routes, switch default-gateway, and router
-DHCP pools (network/mask). Everything else (passive-interface enumerations, RIP
+router-id + network statements, static routes, switch default-gateway, router DHCP
+on/off (proven from pool presence), and router DHCP pool network/mask. Everything
+else (passive-interface enumerations, RIP
 auto-summary, reference-bandwidth defaults, server-hosted DHCP pools, ...) is
 reported `checkable=False` so we never emit a false negative for something we
 simply didn't model.
@@ -51,6 +52,9 @@ SEC_OSPF = 'OSPF'
 SEC_ROUTES = 'Routes'
 SEC_DEFAULT_GW = 'Default Gateway'
 SEC_DHCP = 'DHCP Server List'
+# Router DHCP is graded only via an on/off flag (pool details are graded on
+# end-device DHCP servers, which have no running-config). Both spellings occur.
+SEC_DHCP_FLAG = {'DHCP Server', '(deprecated) DHCP Server'}
 
 ATTR_IP = 'IP Address'
 ATTR_MASK = 'Subnet Mask'
@@ -346,6 +350,12 @@ def _resolve_actual(item, idx):
     if section == SEC_DEFAULT_GW and idx['has_rc']:
         actual = idx['default_gw']
         return actual, (actual == expected), True
+
+    # ── Router DHCP on/off flag: confirmable when the router has pools ─────────
+    if section in SEC_DHCP_FLAG and attr == 'DHCP Enable':
+        if idx['has_rc'] and idx['dhcp']:          # configured pools => DHCP is on
+            return 'enabled (pools present)', (expected == '1'), True
+        return None, False, False                  # can't prove enabled -> skip
 
     # ── Router DHCP pools (server-hosted pools aren't in running-config) ───────
     if section == SEC_DHCP and idx['has_rc']:
